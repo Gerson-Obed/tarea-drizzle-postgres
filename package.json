@@ -4,10 +4,12 @@
   "description": "Tarea de Programación 4: Postgres en Docker + Drizzle ORM",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "tsx --test src/docs/*.test.ts src/package/contracts/*.test.ts",
     "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "docs:generate": "tsx src/docs/generate-openapi.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -21,13 +23,22 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
+    "@trpc/server": "^11.18.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
-    "pg": "^8.22.0"
+    "express": "^5.2.1",
+    "pg": "^8.22.0",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^26.1.2",
     "@types/pg": "^8.20.3",
+    "@types/swagger-ui-express": "^4.1.8",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.23.5",
     "typescript": "^7.0.2"

@@ -1,32 +1,40 @@
-import { TaskService } from "./services/task.service.js";
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import swaggerUi from "swagger-ui-express";
+import * as trpcExpress from "@trpc/server/adapters/express";
+import { taskRouter } from "./http/task.routes.js";
+import { errorHandler } from "./http/error-handler.js";
+import { appRouter } from "./trpc/router.js";
+import { generateOpenApiDocument } from "./docs/openapi.js";
 
-/**
- * Demo: el servicio se conecta al repositorio y este a la base de datos.
- * Ejecutar con: npm run dev  (requiere Postgres levantado y datos sembrados)
- */
-async function main() {
-  const taskService = new TaskService();
+export const app = express();
+const openapi = generateOpenApiDocument();
 
-  console.log("Todas las tareas:");
-  const tasks = await taskService.listAll();
-  console.table(tasks);
+app.use(cors());
+app.use(express.json());
 
-  console.log("\nCreando una tarea nueva para el usuario 1...");
-  const nueva = await taskService.createTask({
-    title: "Probar el servicio",
-    description: "Verificar que TaskService use TaskRepository",
-    userId: 1,
+app.get("/", (_req, res) => {
+  res.json({
+    message: "API funcionando",
+    rest: "/api/tasks",
+    trpc: "/trpc",
+    docs: "/docs",
+    openapi: "/openapi.json",
   });
-  console.log("Tarea creada:", nueva);
-
-  console.log(`\nMarcando la tarea ${nueva.id} como completada...`);
-  const completada = await taskService.completeTask(nueva.id);
-  console.log("Tarea actualizada:", completada);
-
-  process.exit(0);
-}
-
-main().catch((err) => {
-  console.error("Error:", err);
-  process.exit(1);
 });
+
+app.use("/api/tasks", taskRouter);
+app.use("/trpc", trpcExpress.createExpressMiddleware({ router: appRouter }));
+app.get("/openapi.json", (_req, res) => res.json(openapi));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
+app.use(errorHandler);
+
+const port = Number(process.env.PORT ?? 3000);
+
+if (process.env.NODE_ENV !== "test") {
+  app.listen(port, () => {
+    console.log(`Servidor: http://localhost:${port}`);
+    console.log(`Swagger: http://localhost:${port}/docs`);
+  });
+}
