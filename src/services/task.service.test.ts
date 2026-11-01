@@ -94,3 +94,20 @@ test("removeTask lanza NotFoundError si la tarea no existe", async () => {
 
   await assert.rejects(() => servicio.removeTask(7), NotFoundError);
 });
+
+test("listByUser lanza NotFoundError si el usuario no existe", async () => {
+  const { repo } = repoTareas([tarea()]);
+  const servicio = new TaskService(repo, repoUsuarios([1]));
+
+  await assert.rejects(() => servicio.listByUser(42), (error: unknown) =>
+    error instanceof NotFoundError && error.message === "El usuario 42 no existe");
+});
+
+test("completeTask lanza NotFoundError si la tarea no existe", async () => {
+  const { repo, llamadas } = repoTareas([]);
+  const servicio = new TaskService(repo, repoUsuarios([1]));
+
+  await assert.rejects(() => servicio.completeTask(5), (error: unknown) =>
+    error instanceof NotFoundError && error.message === "La tarea 5 no existe");
+  assert.ok(!llamadas.includes("markCompleted:5"), "no debió intentar completar una tarea inexistente");
+});
