@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asistente de tareas</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #1b1b1f; }
+    h1 { font-size: 1.5rem; }
+    section { border: 1px solid #d0d0d8; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+    input, textarea, button { font: inherit; padding: .5rem; margin: .25rem 0; width: 100%; box-sizing: border-box; }
+    button { width: auto; cursor: pointer; }
+    .salida { white-space: pre-wrap; min-height: 2rem; margin-top: .75rem; }
+    .tarea { border-left: 4px solid #6b6bd6; padding: .5rem .75rem; margin: .5rem 0; background: #f6f6fb; }
+    .prioridad { font-size: .8rem; text-transform: uppercase; color: #555; }
+    .error { color: #a02020; }
+  </style>
+</head>
+<body>
+  <h1>Asistente de tareas</h1>
+
+  <section>
+    <h2>Chat</h2>
+    <form id="form-chat">
+      <label>Id de usuario <input id="userId" type="number" min="1" value="1"></label>
+      <label>Mensaje <textarea id="mensaje" rows="2" maxlength="1000" placeholder="¿Qué tareas tengo pendientes?"></textarea></label>
+      <button type="submit">Enviar</button>
+    </form>
+    <div id="respuesta" class="salida"></div>
+  </section>
+
+  <section>
+    <h2>Plan con salida estructurada</h2>
+    <form id="form-plan">
+      <label>Objetivo <input id="objetivo" maxlength="500" placeholder="Preparar el examen final de programación"></label>
+      <button type="submit">Generar plan</button>
+    </form>
+    <div id="plan" class="salida"></div>
+  </section>
+
+  <script>
+    const salidaChat = document.getElementById("respuesta");
+    const salidaPlan = document.getElementById("plan");
+
+    function mostrarError(el, texto) {
+      el.innerHTML = "";
+      const p = document.createElement("p");
+      p.className = "error";
+      p.textContent = texto;
+      el.appendChild(p);
+    }
+
+    document.getElementById("form-chat").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      salidaChat.textContent = "…";
+      const r = await fetch("/api/asistente/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mensaje: document.getElementById("mensaje").value,
+          userId: Number(document.getElementById("userId").value),
+        }),
+      });
+      if (!r.ok) {
+        const datos = await r.json().catch(() => ({}));
+        return mostrarError(salidaChat, datos.error ?? `Error ${r.status}`);
+      }
+      salidaChat.textContent = "";
+      const lector = r.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await lector.read();
+        if (done) break;
+        salidaChat.textContent += decoder.decode(value, { stream: true });
+      }
+    });
+
+    document.getElementById("form-plan").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      salidaPlan.innerHTML = "";
+      const r = await fetch("/api/asistente/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ objetivo: document.getElementById("objetivo").value }),
+      });
+      if (!r.ok) {
+        const datos = await r.json().catch(() => ({}));
+        return mostrarError(salidaPlan, datos.error ?? `Error ${r.status}`);
+      }
+      const lector = r.body.getReader();
+      const decoder = new TextDecoder();
+      let pendiente = "";
+      while (true) {
+        const { done, value } = await lector.read();
+        if (done) break;
+        pendiente += decoder.decode(value, { stream: true });
+        const lineas = pendiente.split("\n");
+        pendiente = lineas.pop();
+        for (const linea of lineas) if (linea.trim()) pintarPlan(JSON.parse(linea));
+      }
+    });
+
+    // Se llama con cada objeto parcial: el plan se va armando en pantalla.
+    function pintarPlan(plan) {
+      salidaPlan.innerHTML = "";
+      if (plan.resumen) {
+        const p = document.createElement("p");
+        p.textContent = plan.resumen;
+        salidaPlan.appendChild(p);
+      }
+      for (const tarea of plan.tareas ?? []) {
+        const div = document.createElement("div");
+        div.className = "tarea";
+        div.innerHTML = `<div class="prioridad"></div><strong></strong><ol></ol>`;
+        div.querySelector(".prioridad").textContent = tarea.prioridad ?? "";
+        div.querySelector("strong").textContent = tarea.titulo ?? "";
+        for (const paso of tarea.pasos ?? []) {
+          const li = document.createElement("li");
+          li.textContent = paso;
+          div.querySelector("ol").appendChild(li);
+        }
+        salidaPlan.appendChild(div);
+      }
+    }
+  </script>
+</body>
+</html>

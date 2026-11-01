@@ -4,9 +4,11 @@ import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { taskRouter } from "./http/task.routes.js";
+import { asistenteRouter } from "./http/asistente.routes.js";
 import { errorHandler } from "./http/error-handler.js";
 import { appRouter } from "./trpc/router.js";
 import { generateOpenApiDocument } from "./docs/openapi.js";
+import { fileURLToPath } from "node:url";
 
 export const app = express();
 const openapi = generateOpenApiDocument();
@@ -25,6 +27,10 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api/tasks", taskRouter);
+app.use("/api/asistente", asistenteRouter);
+app.get("/asistente", (_req, res) =>
+  res.sendFile(fileURLToPath(new URL("../public/asistente.html", import.meta.url))),
+);
 app.use("/trpc", trpcExpress.createExpressMiddleware({ router: appRouter }));
 app.get("/openapi.json", (_req, res) => res.json(openapi));
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
