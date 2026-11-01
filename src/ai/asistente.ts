@@ -1,11 +1,11 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
 import { stepCountIs, streamObject, streamText, tool, type LanguageModel } from "ai";
 import { z } from "zod";
 import { NotFoundError, TaskService } from "../services/task.service.js";
 import { planSchema } from "./schemas.js";
 
 const servicio = new TaskService();
-const modeloPorDefecto = (): LanguageModel => anthropic("claude-sonnet-5-5");
+const modeloPorDefecto = (): LanguageModel => google("gemini-3.8-flash");
 
 // Herramienta real: consulta la base. Si el usuario no existe, no lanza:
 // devuelve el error como dato para que el modelo lo pueda explicar.
