@@ -1,0 +1,47 @@
+name: pruebas
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  calidad:
+    runs-on: ubuntu-latest
+
+    # La base de las pruebas de integración: el mismo Postgres 16 del docker-compose.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tarea_user
+          POSTGRES_PASSWORD: tarea_pass
+          POSTGRES_DB: tarea_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tarea_user -d tarea_db"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql://tarea_user:tarea_pass@localhost:5432/tarea_db
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Migrar la base
+        run: npx drizzle-kit migrate
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Pruebas unitarias e integración
+        run: npm test

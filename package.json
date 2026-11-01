@@ -4,7 +4,7 @@
   "description": "Tarea de Programación 4: Postgres en Docker + Drizzle ORM",
   "main": "index.js",
   "scripts": {
-    "test": "tsx --test src/docs/*.test.ts src/package/contracts/*.test.ts",
+    "test": "tsx --test src/docs/*.test.ts src/package/contracts/*.test.ts src/services/*.test.ts",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
